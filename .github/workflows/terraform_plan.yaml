@@ -23,7 +23,7 @@ jobs:
 
       - name: Terraform Format Check
         id: fmt
-        working-directory: ..infra/environments/prod
+        working-directory: ../infra/environments/prod
         run: terraform fmt -check
 
       - name: Configure AWS
@@ -34,17 +34,17 @@ jobs:
 
       - name: Initialize Terraform
         id: init
-        working-directory: ..infra/environments/prod
+        working-directory: ../infra/environments/prod
         run: terraform init
 
       - name: Terraform Validate
         id: validate
-        working-directory: ..infra/environments/prod
+        working-directory: ../infra/environments/prod
         run: terraform validate
 
       - name: Terraform Plan
         id: plan
-        working-directory: ..infra/environments/prod
+        working-directory: ../infra/environments/prod
         run: terraform plan
 
       - name: Comment PR with Terraform Plan Results

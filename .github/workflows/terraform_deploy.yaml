@@ -26,13 +26,13 @@ jobs:
           aws-region: ${{ secrets.aws_region }}
 
       - name: Initialize Terraform
-        working-directory: ..infra/environments/prod
+        working-directory: ../infra/environments/prod
         run: terraform init
 
       - name: Terraform Plan
-        working-directory: ..infra/environments/prod
+        working-directory: ../infra/environments/prod
         run: terraform plan -out=tfplan
 
       - name: Terraform Apply
-        working-directory: ..infra/environments/prod
+        working-directory: ../infra/environments/prod
         run: terraform apply -auto-approve tfplan
