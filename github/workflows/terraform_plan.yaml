@@ -1,0 +1,87 @@
+name: Terraform PR Plan
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+    types: [opened, synchronize, reopened]
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  terraform-plan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Format Check
+        id: fmt
+        working-directory: ..infra/environments/prod
+        run: terraform fmt -check
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.aws_identity_provider_role }}
+          aws-region: ${{ secrets.aws_region }}
+
+      - name: Initialize Terraform
+        id: init
+        working-directory: ..infra/environments/prod
+        run: terraform init
+
+      - name: Terraform Validate
+        id: validate
+        working-directory: ..infra/environments/prod
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: ..infra/environments/prod
+        run: terraform plan
+
+      - name: Comment PR with Terraform Plan Results
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+            <details><summary>Validation Output</summary>
+
+            \`\`\`\n
+            ${{ steps.validate.outputs.stdout }}
+            \`\`\`
+
+            </details>
+
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`\n
+            ${process.env.PLAN}
+            \`\`\`
+
+            </details>
+
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Workflow: \`${{ github.workflow }}\`*`;
+
+            await github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              body: output,
+              event: 'COMMENT'
+            });
